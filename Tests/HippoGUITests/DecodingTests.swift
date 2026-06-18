@@ -207,7 +207,8 @@ struct DecodingTests {
             EventListResponse.self,
             from: Data(
                 """
-                {"events":[{"id":1,"session_id":1,"timestamp":1713404800000,"command":"swift test","exit_code":0,"duration_ms":123,"cwd":"/tmp","git_branch":"main"}],"total":1}
+                {"events":[{"id":1,"session_id":1,"timestamp":1713404800000,"command":"swift test","exit_code":0,
+                "duration_ms":123,"cwd":"/tmp","git_branch":"main"}],"total":1}
                 """.utf8
             )
         )
@@ -215,7 +216,8 @@ struct DecodingTests {
             KnowledgeListResponse.self,
             from: Data(
                 """
-                {"nodes":[{"id":1,"uuid":"node-1","content":"{}","node_type":"observation","outcome":"success","tags":["swift"],"created_at":1713404800000}],"total":1}
+                {"nodes":[{"id":1,"uuid":"node-1","content":"{}","node_type":"observation","outcome":"success",
+                "tags":["swift"],"created_at":1713404800000}],"total":1}
                 """.utf8
             )
         )

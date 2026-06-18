@@ -323,7 +323,7 @@ private func previewKnowledgeNode() -> KnowledgeNode {
         {
             "id": 1,
             "uuid": "preview-node",
-            "content": "{\\"summary\\":\\"Preview summary\\",\\"tags\\":[\\"swift\\",\\"preview\\"],\\"key_decisions\\":[\\"Used NavigationSplitView\\"]}",
+            "content": "{\\"summary\\":\\"Preview summary\\",\\"tags\\":[\\"swift\\",\\"preview\\"]}",
             "embed_text": "Preview embed text",
             "node_type": "observation",
             "outcome": "success",

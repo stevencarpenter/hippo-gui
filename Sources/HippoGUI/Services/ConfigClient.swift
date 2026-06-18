@@ -59,44 +59,44 @@ struct ConfigClient: Sendable {
         }
         return try? TOMLDecoder().decode(ParsedConfig.self, from: content)
     }
+}
 
-    /// Mirrors the subset of `config.toml` that the GUI reads. Unknown sections
-    /// and keys are ignored, and every field is optional so a partial file still
-    /// decodes with unspecified values left to the caller's defaults.
-    private struct ParsedConfig: Decodable {
-        let brain: Brain?
-        let storage: Storage?
+/// Mirrors the subset of `config.toml` that the GUI reads. Unknown sections and
+/// keys are ignored, and every field is optional so a partial file still decodes
+/// with unspecified values left to the caller's defaults.
+private struct ParsedConfig: Decodable {
+    let brain: BrainSection?
+    let storage: StorageSection?
+}
 
-        struct Brain: Decodable {
-            let port: Int?
-            let queryTimeoutSecs: TimeInterval?
+private struct BrainSection: Decodable {
+    let port: Int?
+    let queryTimeoutSecs: TimeInterval?
 
-            enum CodingKeys: String, CodingKey {
-                case port
-                case queryTimeoutSecs = "query_timeout_secs"
-            }
+    enum CodingKeys: String, CodingKey {
+        case port
+        case queryTimeoutSecs = "query_timeout_secs"
+    }
 
-            init(from decoder: any Decoder) throws {
-                let container = try decoder.container(keyedBy: CodingKeys.self)
-                port = try? container.decode(Int.self, forKey: .port)
-                // `query_timeout_secs` may be written as a TOML integer (120) or
-                // float (120.5); accept either.
-                if let double = try? container.decode(Double.self, forKey: .queryTimeoutSecs) {
-                    queryTimeoutSecs = double
-                } else if let int = try? container.decode(Int.self, forKey: .queryTimeoutSecs) {
-                    queryTimeoutSecs = TimeInterval(int)
-                } else {
-                    queryTimeoutSecs = nil
-                }
-            }
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        port = try? container.decode(Int.self, forKey: .port)
+        // `query_timeout_secs` may be written as a TOML integer (120) or
+        // float (120.5); accept either.
+        if let double = try? container.decode(Double.self, forKey: .queryTimeoutSecs) {
+            queryTimeoutSecs = double
+        } else if let int = try? container.decode(Int.self, forKey: .queryTimeoutSecs) {
+            queryTimeoutSecs = TimeInterval(int)
+        } else {
+            queryTimeoutSecs = nil
         }
+    }
+}
 
-        struct Storage: Decodable {
-            let dataDir: String?
+private struct StorageSection: Decodable {
+    let dataDir: String?
 
-            enum CodingKeys: String, CodingKey {
-                case dataDir = "data_dir"
-            }
-        }
+    enum CodingKeys: String, CodingKey {
+        case dataDir = "data_dir"
     }
 }

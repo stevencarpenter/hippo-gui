@@ -32,7 +32,8 @@ actor MockBrainClient: BrainClientProtocol {
         eventResponsesSequence: [Result<EventListResponse, BrainClientError>] = [],
         sessionResponse: Result<SessionListResponse, BrainClientError> = .success(.init(sessions: [], total: 0)),
         sessionResponsesSequence: [Result<SessionListResponse, BrainClientError>] = [],
-        askResponse: Result<AskResponse, BrainClientError> = .success(.init(answer: nil, sources: [], model: nil, error: nil, degraded: nil, stage: nil)),
+        askResponse: Result<AskResponse, BrainClientError> = .success(
+            .init(answer: nil, sources: [], model: nil, error: nil, degraded: nil, stage: nil)),
         queryResponse: Result<QueryResponse, BrainClientError> = .success(.init(mode: .search)),
         healthResponse: Result<HealthResponse, BrainClientError> = .success(.preview)
     ) {
@@ -86,7 +87,9 @@ actor MockBrainClient: BrainClientProtocol {
         throw BrainClientError.serverError(statusCode: 404, message: "Knowledge node not found")
     }
 
-    func listEvents(limit: Int, offset: Int, sessionId: Int?, sinceMs: Int?, project: String?) async throws(BrainClientError) -> EventListResponse {
+    func listEvents(
+        limit: Int, offset: Int, sessionId: Int?, sinceMs: Int?, project: String?
+    ) async throws(BrainClientError) -> EventListResponse {
         lastEventRequest = (limit, offset, sessionId, sinceMs, project)
         if !eventResponsesSequence.isEmpty {
             switch eventResponsesSequence.removeFirst() {

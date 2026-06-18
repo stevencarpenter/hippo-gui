@@ -29,3 +29,16 @@ function_body_length:
 type_body_length:
   warning: 350
   error: 500
+
+identifier_name:
+  # Short fixture names are idiomatic in unit tests (system-under-test,
+  # numbered nodes/events/sessions). Allow them rather than padding names.
+  excluded:
+    - vm
+    - n1
+    - n2
+    - e1
+    - e2
+    - s1
+    - s2
+    - id
