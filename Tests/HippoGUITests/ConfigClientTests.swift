@@ -95,6 +95,63 @@ struct ConfigClientTests {
         #expect(ConfigClient(configPath: path).loadQueryTimeout() == 300)
     }
 
+    @Test
+    func snapshotResolvesAllValuesFromOneParse() throws {
+        let path = try writeConfig(
+            """
+            [brain]
+            port = 9001
+            query_timeout_secs = 45
+
+            [storage]
+            data_dir = "/tmp/hippo-data"
+            """
+        )
+        let snapshot = ConfigClient(configPath: path).snapshot()
+        #expect(snapshot.port == 9001)
+        #expect(snapshot.queryTimeout == 45)
+        #expect(snapshot.dataDirectory == URL(fileURLWithPath: "/tmp/hippo-data", isDirectory: true))
+    }
+
+    @Test
+    func snapshotUsesDefaultsForMissingValues() throws {
+        let path = try writeConfig(
+            """
+            [brain]
+            port = 9001
+            """
+        )
+        let snapshot = ConfigClient(configPath: path).snapshot()
+        #expect(snapshot.port == 9001)
+        #expect(snapshot.queryTimeout == ConfigClient.defaultQueryTimeout)
+    }
+
+    @Test
+    func queryTimeoutAcceptsFloatValue() throws {
+        let path = try writeConfig(
+            """
+            [brain]
+            query_timeout_secs = 120.5
+            """
+        )
+        #expect(ConfigClient(configPath: path).loadQueryTimeout() == 120.5)
+    }
+
+    @Test
+    func malformedConfigDiscardsAllValuesAndUsesDefaults() throws {
+        // TOML is parsed as a whole: one invalid line invalidates the entire
+        // document, so even an otherwise-valid `port` falls back to the default
+        // rather than being read from a partially-valid file.
+        let path = try writeConfig(
+            """
+            [brain]
+            port = 9001
+            this line is not valid toml
+            """
+        )
+        #expect(ConfigClient(configPath: path).loadPort() == ConfigClient.defaultPort)
+    }
+
     private func writeConfig(_ content: String) throws -> URL {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("hippo-config-tests-\(UUID().uuidString)", isDirectory: true)

@@ -29,3 +29,17 @@ function_body_length:
 type_body_length:
   warning: 350
   error: 500
+
+identifier_name:
+  # Allow short fixture names used throughout the unit tests (system-under-test,
+  # numbered nodes/events/sessions) rather than padding identifiers. SwiftLint
+  # applies `excluded` globally, but these names are not used in Sources/.
+  excluded:
+    - vm
+    - n1
+    - n2
+    - e1
+    - e2
+    - s1
+    - s2
+    - id

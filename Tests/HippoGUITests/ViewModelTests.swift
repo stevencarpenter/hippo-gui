@@ -80,7 +80,9 @@ struct ViewModelTests {
     @Test
     func eventBrowserViewModelUsesSinceAndProjectFilters() async throws {
         let session = Session(id: 1, startTime: 1_713_404_800_000, hostname: "laptop", shell: "zsh", eventCount: 1)
-        let event = Event(id: 11, sessionId: 1, timestamp: 1_713_404_800_000, command: "swift test", exitCode: 0, durationMs: 400, cwd: "/Users/carpenter/projects/hippo", gitBranch: "main")
+        let event = Event(
+            id: 11, sessionId: 1, timestamp: 1_713_404_800_000, command: "swift test", exitCode: 0, durationMs: 400,
+            cwd: "/Users/carpenter/projects/hippo", gitBranch: "main")
         let mock = MockBrainClient(
             eventResponse: .success(.init(events: [event], total: 1)),
             sessionResponse: .success(.init(sessions: [session], total: 1))
@@ -261,8 +263,10 @@ struct ViewModelTests {
 
     @Test
     func knowledgeViewModelFilteredNodesReturnsAllWhenSearchEmpty() async throws {
-        let n1 = KnowledgeNode(id: 1, uuid: "n1", content: "{\"summary\":\"Swift stuff\"}", nodeType: "observation", tags: ["swift"], createdAt: 0)
-        let n2 = KnowledgeNode(id: 2, uuid: "n2", content: "{\"summary\":\"Rust stuff\"}", nodeType: "observation", tags: ["rust"], createdAt: 0)
+        let n1 = KnowledgeNode(
+            id: 1, uuid: "n1", content: "{\"summary\":\"Swift stuff\"}", nodeType: "observation", tags: ["swift"], createdAt: 0)
+        let n2 = KnowledgeNode(
+            id: 2, uuid: "n2", content: "{\"summary\":\"Rust stuff\"}", nodeType: "observation", tags: ["rust"], createdAt: 0)
         let mock = MockBrainClient(
             knowledgeResponse: .success(.init(nodes: [n1, n2], total: 2)),
             knowledgeDetails: [1: .success(n1), 2: .success(n2)]
@@ -276,8 +280,10 @@ struct ViewModelTests {
 
     @Test
     func knowledgeViewModelFilteredNodesByDisplaySummary() async throws {
-        let n1 = KnowledgeNode(id: 1, uuid: "n1", content: "{\"summary\":\"Actor isolation fix\"}", nodeType: "observation", tags: [], createdAt: 0)
-        let n2 = KnowledgeNode(id: 2, uuid: "n2", content: "{\"summary\":\"Cargo workspace setup\"}", nodeType: "observation", tags: [], createdAt: 0)
+        let n1 = KnowledgeNode(
+            id: 1, uuid: "n1", content: "{\"summary\":\"Actor isolation fix\"}", nodeType: "observation", tags: [], createdAt: 0)
+        let n2 = KnowledgeNode(
+            id: 2, uuid: "n2", content: "{\"summary\":\"Cargo workspace setup\"}", nodeType: "observation", tags: [], createdAt: 0)
         let mock = MockBrainClient(
             knowledgeResponse: .success(.init(nodes: [n1, n2], total: 2)),
             knowledgeDetails: [1: .success(n1), 2: .success(n2)]
@@ -339,7 +345,10 @@ struct ViewModelTests {
         #expect(vm.selectedNodeID == 2)
         #expect(vm.selectedNodeDetail?.id == 2)
     }
+}
 
+@MainActor
+extension ViewModelTests {
     // MARK: - EventBrowserViewModel additional coverage
 
     @Test
@@ -397,7 +406,9 @@ struct ViewModelTests {
     func eventBrowserViewModelSelectSessionLoadsItsEvents() async throws {
         let s1 = Session(id: 1, startTime: 0, hostname: "laptop", shell: "zsh", eventCount: 0)
         let s2 = Session(id: 2, startTime: 1000, hostname: "laptop", shell: "zsh", eventCount: 1)
-        let eventsForS2 = [Event(id: 21, sessionId: 2, timestamp: 0, command: "cargo build", exitCode: 0, durationMs: 100, cwd: "/tmp", gitBranch: nil)]
+        let eventsForS2 = [
+            Event(id: 21, sessionId: 2, timestamp: 0, command: "cargo build", exitCode: 0, durationMs: 100, cwd: "/tmp", gitBranch: nil)
+        ]
         let mock = MockBrainClient(
             eventResponsesSequence: [
                 .success(.init(events: [], total: 0)),         // auto-load for s1

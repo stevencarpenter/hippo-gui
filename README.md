@@ -57,21 +57,22 @@ Prerequisites:
 
 ## Release versioning
 
+HippoGUI is versioned independently of the broader Hippo project, following [SemVer](https://semver.org). The `hippo-gui/VERSION` file is the single source of truth; releases are tagged `vX.Y.Z`.
+
 - `HippoGUI` app bundle versions are stamped by `scripts/stamp-app-version.sh`
 - `CFBundleShortVersionString` is resolved with the following precedence:
-  1. `HIPPO_MARKETING_VERSION` environment variable, if set
-  2. `hippo-gui/VERSION` file, if present (this PR adds it; `0.1.0` initially)
-  3. The repo-wide version in `Cargo.toml` under `[workspace.package].version`
-- `CFBundleVersion` comes from `HIPPO_BUILD_NUMBER`, then `BUILD_NUMBER`, then the current git commit count
+  1. `HIPPO_MARKETING_VERSION` environment variable, if set (for CI overrides)
+  2. `hippo-gui/VERSION` file
+- `CFBundleVersion` comes from `HIPPO_BUILD_NUMBER`, then `BUILD_NUMBER`, then the commit count of this repo (`git rev-list --count HEAD`)
 - The same stamping flow is used by both `HippoGUI.xcodeproj` and `./scripts/build-native-app.sh`
 - `./scripts/release-gui.sh` builds the native `.app`, creates a versioned `.zip`, writes sibling SHA-256 and Markdown release-notes files, and can emit CI-friendly JSON
 
-To cut the next release version, edit `hippo-gui/VERSION` for a GUI-specific bump, or update the root workspace version to keep the GUI in lockstep with the daemon. If both exist, `hippo-gui/VERSION` wins:
+To cut a release, bump `hippo-gui/VERSION`, commit, and tag:
 
 ```bash
-$EDITOR hippo-gui/VERSION   # GUI-specific override
-# or
-$EDITOR Cargo.toml          # workspace-wide bump (used when VERSION absent)
+$EDITOR hippo-gui/VERSION   # e.g. 1.0.0 -> 1.1.0
+git commit -am "chore(release): bump to vX.Y.Z"
+git tag vX.Y.Z
 ```
 
 To inspect the stamped version in the script-built app:
@@ -117,6 +118,31 @@ To verify the generated archive checksum later:
 ```bash
 cd hippo-gui/dist/release
 shasum -a 256 -c HippoGUI-<version>-<build>.zip.sha256
+```
+
+## Troubleshooting
+
+### SwiftLint plugin crash: `Plug-in ended with uncaught signal: 5`
+
+If a build fails with `Plug-in ended with uncaught signal: 5` and the full log shows:
+
+```
+SourceKittenFramework/library_wrapper.swift:58: Fatal error:
+Loading sourcekitdInProc.framework/Versions/A/sourcekitdInProc failed
+```
+
+the SwiftLint build-tool plugin (via SourceKitten) is loading a `sourcekitd` that does not match the toolchain building the project. This happens when the active command-line developer directory points at `CommandLineTools` instead of the Xcode you're building with. Point `xcode-select` at that Xcode:
+
+```bash
+sudo xcode-select -s /Applications/Xcode-beta.app/Contents/Developer
+```
+
+Adjust the path if you build with a different Xcode (e.g. `/Applications/Xcode.app/Contents/Developer`). Verify with `xcode-select -p`.
+
+Rollback (restore the previous setting) with:
+
+```bash
+sudo xcode-select -s /Library/Developer/CommandLineTools
 ```
 
 ## About and Settings

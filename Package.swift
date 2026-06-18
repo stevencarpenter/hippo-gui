@@ -9,11 +9,15 @@ let package = Package(
         .executable(name: "HippoGUI", targets: ["HippoGUIPackageApp"])
     ],
     dependencies: [
-        .package(url: "https://github.com/realm/SwiftLint", from: "0.57.0")
+        .package(url: "https://github.com/realm/SwiftLint", from: "0.57.0"),
+        .package(url: "https://github.com/dduan/TOMLDecoder", from: "0.4.4")
     ],
     targets: [
         .target(
             name: "HippoGUIKit",
+            dependencies: [
+                .product(name: "TOMLDecoder", package: "TOMLDecoder")
+            ],
             path: "Sources/HippoGUI",
             plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLint")]
         ),

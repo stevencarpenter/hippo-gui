@@ -189,7 +189,9 @@ struct ModelTests {
         #expect(BrainClientError.encodingError("bad encoding").localizedDescription == "Encoding error: bad encoding")
         #expect(BrainClientError.networkError("timeout").localizedDescription == "Network error: timeout")
         #expect(BrainClientError.decodingError("bad json").localizedDescription == "Decoding error: bad json")
-        #expect(BrainClientError.serverError(statusCode: 500, message: "Internal Server Error").localizedDescription == "Server error (HTTP 500): Internal Server Error")
+        #expect(
+            BrainClientError.serverError(statusCode: 500, message: "Internal Server Error").localizedDescription
+                == "Server error (HTTP 500): Internal Server Error")
         #expect(BrainClientError.notConfigured.localizedDescription == "Brain client is not configured.")
     }
 
@@ -198,7 +200,9 @@ struct ModelTests {
         #expect(BrainClientError.notConfigured == BrainClientError.notConfigured)
         #expect(BrainClientError.networkError("x") == BrainClientError.networkError("x"))
         #expect(BrainClientError.networkError("x") != BrainClientError.networkError("y"))
-        #expect(BrainClientError.serverError(statusCode: 404, message: "Not found") == BrainClientError.serverError(statusCode: 404, message: "Not found"))
+        #expect(
+            BrainClientError.serverError(statusCode: 404, message: "Not found")
+                == BrainClientError.serverError(statusCode: 404, message: "Not found"))
     }
 
     // MARK: - Helpers
