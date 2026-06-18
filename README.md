@@ -57,21 +57,22 @@ Prerequisites:
 
 ## Release versioning
 
+HippoGUI is versioned independently of the broader Hippo project, following [SemVer](https://semver.org). The `hippo-gui/VERSION` file is the single source of truth; releases are tagged `vX.Y.Z`.
+
 - `HippoGUI` app bundle versions are stamped by `scripts/stamp-app-version.sh`
 - `CFBundleShortVersionString` is resolved with the following precedence:
-  1. `HIPPO_MARKETING_VERSION` environment variable, if set
-  2. `hippo-gui/VERSION` file, if present (this PR adds it; `0.1.0` initially)
-  3. The repo-wide version in `Cargo.toml` under `[workspace.package].version`
-- `CFBundleVersion` comes from `HIPPO_BUILD_NUMBER`, then `BUILD_NUMBER`, then the current git commit count
+  1. `HIPPO_MARKETING_VERSION` environment variable, if set (for CI overrides)
+  2. `hippo-gui/VERSION` file
+- `CFBundleVersion` comes from `HIPPO_BUILD_NUMBER`, then `BUILD_NUMBER`, then the commit count of this repo (`git rev-list --count HEAD`)
 - The same stamping flow is used by both `HippoGUI.xcodeproj` and `./scripts/build-native-app.sh`
 - `./scripts/release-gui.sh` builds the native `.app`, creates a versioned `.zip`, writes sibling SHA-256 and Markdown release-notes files, and can emit CI-friendly JSON
 
-To cut the next release version, edit `hippo-gui/VERSION` for a GUI-specific bump, or update the root workspace version to keep the GUI in lockstep with the daemon. If both exist, `hippo-gui/VERSION` wins:
+To cut a release, bump `hippo-gui/VERSION`, commit, and tag:
 
 ```bash
-$EDITOR hippo-gui/VERSION   # GUI-specific override
-# or
-$EDITOR Cargo.toml          # workspace-wide bump (used when VERSION absent)
+$EDITOR hippo-gui/VERSION   # e.g. 1.0.0 -> 1.1.0
+git commit -am "chore(release): bump to vX.Y.Z"
+git tag vX.Y.Z
 ```
 
 To inspect the stamped version in the script-built app:

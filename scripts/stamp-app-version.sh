@@ -3,9 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GUI_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-REPO_DIR="$(cd "${GUI_DIR}/.." && pwd)"
 PLIST_PATH="${1:-}"
-CARGO_TOML="${REPO_DIR}/Cargo.toml"
 
 usage() {
   echo "Usage: $0 /path/to/Info.plist" >&2
@@ -25,10 +23,6 @@ if [ ! -f "${PLIST_PATH}" ]; then
   fail "Info.plist not found at ${PLIST_PATH}"
 fi
 
-if [ ! -f "${CARGO_TOML}" ]; then
-  fail "Cargo.toml not found at ${CARGO_TOML}"
-fi
-
 resolve_marketing_version() {
   if [ -n "${HIPPO_MARKETING_VERSION:-}" ]; then
     printf '%s\n' "${HIPPO_MARKETING_VERSION}"
@@ -37,24 +31,8 @@ resolve_marketing_version() {
 
   VERSION_FILE="${GUI_DIR}/VERSION"
   if [ -f "${VERSION_FILE}" ]; then
-    ver="$(tr -d '[:space:]' < "${VERSION_FILE}")"
-    if [ -n "${ver}" ]; then
-      printf '%s\n' "${ver}"
-      return
-    fi
+    tr -d '[:space:]' < "${VERSION_FILE}"
   fi
-
-  awk '
-    BEGIN { in_section = 0 }
-    /^[[:space:]]*\[workspace\.package\][[:space:]]*$/ { in_section = 1; next }
-    /^[[:space:]]*\[/ { if (in_section) exit }
-    in_section && /^[[:space:]]*version[[:space:]]*=/ {
-      if (match($0, /"[^"]+"/)) {
-        print substr($0, RSTART + 1, RLENGTH - 2)
-        exit
-      }
-    }
-  ' "${CARGO_TOML}"
 }
 
 resolve_build_number() {
@@ -68,8 +46,8 @@ resolve_build_number() {
     return
   fi
 
-  if git -C "${REPO_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    git -C "${REPO_DIR}" rev-list --count HEAD
+  if git -C "${GUI_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git -C "${GUI_DIR}" rev-list --count HEAD
     return
   fi
 
@@ -92,7 +70,7 @@ MARKETING_VERSION="$(resolve_marketing_version)"
 BUILD_VERSION="$(resolve_build_number)"
 
 if [ -z "${MARKETING_VERSION}" ]; then
-  fail "Failed to resolve marketing version from ${GUI_DIR}/VERSION or ${CARGO_TOML}"
+  fail "Failed to resolve marketing version from HIPPO_MARKETING_VERSION or ${GUI_DIR}/VERSION"
 fi
 
 if [[ ! "${MARKETING_VERSION}" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
