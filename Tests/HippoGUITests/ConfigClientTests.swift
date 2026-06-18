@@ -95,6 +95,32 @@ struct ConfigClientTests {
         #expect(ConfigClient(configPath: path).loadQueryTimeout() == 300)
     }
 
+    @Test
+    func queryTimeoutAcceptsFloatValue() throws {
+        let path = try writeConfig(
+            """
+            [brain]
+            query_timeout_secs = 120.5
+            """
+        )
+        #expect(ConfigClient(configPath: path).loadQueryTimeout() == 120.5)
+    }
+
+    @Test
+    func malformedConfigDiscardsAllValuesAndUsesDefaults() throws {
+        // TOML is parsed as a whole: one invalid line invalidates the entire
+        // document, so even an otherwise-valid `port` falls back to the default
+        // rather than being read from a partially-valid file.
+        let path = try writeConfig(
+            """
+            [brain]
+            port = 9001
+            this line is not valid toml
+            """
+        )
+        #expect(ConfigClient(configPath: path).loadPort() == ConfigClient.defaultPort)
+    }
+
     private func writeConfig(_ content: String) throws -> URL {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("hippo-config-tests-\(UUID().uuidString)", isDirectory: true)

@@ -53,6 +53,11 @@ struct ConfigClient: Sendable {
     }
 
     /// Decode the config file, or `nil` if it is missing, unreadable, or invalid TOML.
+    ///
+    /// TOML is parsed as a whole: a single malformed line invalidates the entire
+    /// document, so every accessor falls back to its default rather than reading
+    /// a partially-valid file. This is intentional — a malformed config is
+    /// treated as no config.
     private func decoded() -> ParsedConfig? {
         guard let content = try? String(contentsOf: configPath, encoding: .utf8) else {
             return nil
