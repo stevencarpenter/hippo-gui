@@ -1,8 +1,11 @@
 import SwiftUI
 
 struct EventBrowserView: View {
-    @Environment(\.brainClient) private var brainClient
-    @State private var viewModel = EventBrowserViewModel()
+    @State private var viewModel: EventBrowserViewModel
+
+    init(client: any BrainClientProtocol) {
+        _viewModel = State(initialValue: EventBrowserViewModel(client: client))
+    }
 
     var body: some View {
         HSplitView {
@@ -251,7 +254,6 @@ struct EventBrowserView: View {
             Task { await viewModel.refresh() }
         }
         .task {
-            viewModel.configure(client: brainClient)
             await viewModel.refresh()
         }
     }
@@ -287,12 +289,11 @@ struct EventBrowserView: View {
         total: 2
     )
 
-    EventBrowserView()
-        .brainClient(
-            PreviewBrainClient(
-                eventResponse: .success(events),
-                sessionResponse: .success(sessions)
-            )
+    EventBrowserView(
+        client: PreviewBrainClient(
+            eventResponse: .success(events),
+            sessionResponse: .success(sessions)
         )
+    )
 }
 #endif

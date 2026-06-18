@@ -1,8 +1,11 @@
 import SwiftUI
 
 struct KnowledgeView: View {
-    @Environment(\.brainClient) private var brainClient
-    @State private var viewModel = KnowledgeViewModel()
+    @State private var viewModel: KnowledgeViewModel
+
+    init(client: any BrainClientProtocol) {
+        _viewModel = State(initialValue: KnowledgeViewModel(client: client))
+    }
 
     var body: some View {
         HSplitView {
@@ -237,7 +240,6 @@ struct KnowledgeView: View {
             Task { await viewModel.refresh() }
         }
         .task {
-            viewModel.configure(client: brainClient)
             await viewModel.refresh()
         }
     }
@@ -346,12 +348,11 @@ private func previewKnowledgeNode() -> KnowledgeNode {
         total: 1
     )
 
-    KnowledgeView()
-        .brainClient(
-            PreviewBrainClient(
-                knowledgeResponse: .success(nodeList),
-                knowledgeDetails: [1: .success(nodeList.nodes[0])]
-            )
+    KnowledgeView(
+        client: PreviewBrainClient(
+            knowledgeResponse: .success(nodeList),
+            knowledgeDetails: [1: .success(nodeList.nodes[0])]
         )
+    )
 }
 #endif

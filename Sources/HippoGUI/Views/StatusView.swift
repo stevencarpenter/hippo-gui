@@ -1,8 +1,11 @@
 import SwiftUI
 
 struct StatusView: View {
-    @Environment(\.brainClient) private var brainClient
-    @State private var svm = StatusViewModel()
+    @State private var svm: StatusViewModel
+
+    init(client: any BrainClientProtocol) {
+        _svm = State(initialValue: StatusViewModel(client: client))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -116,7 +119,6 @@ struct StatusView: View {
         }
         .padding()
         .task {
-            svm.configure(client: brainClient)
             await svm.autoRefresh()
         }
     }
@@ -143,7 +145,6 @@ struct StatusView: View {
 
 #if DEBUG
 #Preview {
-    StatusView()
-        .brainClient(PreviewBrainClient(healthResponse: .success(.preview)))
+    StatusView(client: PreviewBrainClient(healthResponse: .success(.preview)))
 }
 #endif

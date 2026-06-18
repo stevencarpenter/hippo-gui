@@ -1,8 +1,11 @@
 import SwiftUI
 
 struct QueryAskView: View {
-    @Environment(\.brainClient) private var brainClient
-    @State private var viewModel = QueryViewModel()
+    @State private var viewModel: QueryViewModel
+
+    init(client: any BrainClientProtocol) {
+        _viewModel = State(initialValue: QueryViewModel(client: client))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -144,9 +147,6 @@ struct QueryAskView: View {
             Spacer()
         }
         .padding()
-        .task {
-            viewModel.configure(client: brainClient)
-        }
     }
 
     @ViewBuilder
@@ -188,10 +188,9 @@ struct QueryAskView: View {
 
 #if DEBUG
 #Preview {
-    QueryAskView()
-        .brainClient(
-            PreviewBrainClient(
-                askResponse: .success(
+    QueryAskView(
+        client: PreviewBrainClient(
+            askResponse: .success(
                     AskResponse(
                         answer: "You ran `cargo test` and resolved a failing snapshot.",
                         sources: [

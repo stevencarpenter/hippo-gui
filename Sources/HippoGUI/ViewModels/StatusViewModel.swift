@@ -10,9 +10,8 @@ final class StatusViewModel {
     var errorMessage: String?
     var lastCheckedAt: Date?
 
-    @ObservationIgnored private var client: (any BrainClientProtocol)?
+    @ObservationIgnored private let client: (any BrainClientProtocol)?
     @ObservationIgnored private let daemonClient: DaemonSocketClient
-    @ObservationIgnored private var autoRefreshTask: Task<Void, Never>?
 
     init(
         client: (any BrainClientProtocol)? = nil,
@@ -20,10 +19,6 @@ final class StatusViewModel {
     ) {
         self.client = client
         self.daemonClient = daemonClient
-    }
-
-    func configure(client: any BrainClientProtocol) {
-        self.client = client
     }
 
     var brainReachable: Bool {
@@ -74,34 +69,10 @@ final class StatusViewModel {
         }
     }
 
-    /// Start a polling loop that refreshes every 30 seconds.
+    /// Poll `refresh()` every 30 seconds until the surrounding task is cancelled.
     ///
-    /// Safe to call multiple times — the prior loop is cancelled before a new
-    /// one starts. Call `stopAutoRefresh()` (or let the view model deinit) to
-    /// stop the loop.
-    func startAutoRefresh() {
-        autoRefreshTask?.cancel()
-        autoRefreshTask = Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self else { return }
-                await self.refresh()
-                do {
-                    try await Task.sleep(for: .seconds(30))
-                } catch {
-                    return
-                }
-            }
-        }
-    }
-
-    func stopAutoRefresh() {
-        autoRefreshTask?.cancel()
-        autoRefreshTask = nil
-    }
-
-    /// Legacy entry point — prefer `startAutoRefresh()` plus `stopAutoRefresh()`.
-    /// Kept for callers that drive the lifecycle via `.task {}` (SwiftUI will
-    /// cancel the enclosing Task on view disappear).
+    /// Driven from a SwiftUI `.task {}`, so the loop is automatically cancelled
+    /// when the view disappears.
     func autoRefresh() async {
         while !Task.isCancelled {
             await refresh()

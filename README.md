@@ -119,6 +119,31 @@ cd hippo-gui/dist/release
 shasum -a 256 -c HippoGUI-<version>-<build>.zip.sha256
 ```
 
+## Troubleshooting
+
+### SwiftLint plugin crash: `Plug-in ended with uncaught signal: 5`
+
+If a build fails with `Plug-in ended with uncaught signal: 5` and the full log shows:
+
+```
+SourceKittenFramework/library_wrapper.swift:58: Fatal error:
+Loading sourcekitdInProc.framework/Versions/A/sourcekitdInProc failed
+```
+
+the SwiftLint build-tool plugin (via SourceKitten) is loading a `sourcekitd` that does not match the toolchain building the project. This happens when the active command-line developer directory points at `CommandLineTools` instead of the Xcode you're building with. Point `xcode-select` at that Xcode:
+
+```bash
+sudo xcode-select -s /Applications/Xcode-beta.app/Contents/Developer
+```
+
+Adjust the path if you build with a different Xcode (e.g. `/Applications/Xcode.app/Contents/Developer`). Verify with `xcode-select -p`.
+
+Rollback (restore the previous setting) with:
+
+```bash
+sudo xcode-select -s /Library/Developer/CommandLineTools
+```
+
 ## About and Settings
 
 - Open `HippoGUI > About HippoGUI` for a dedicated About window; repeating the command reuses and focuses the same window

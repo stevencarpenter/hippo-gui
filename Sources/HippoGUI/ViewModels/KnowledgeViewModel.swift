@@ -19,13 +19,9 @@ final class KnowledgeViewModel {
     var offset = 0
     var total = 0
 
-    @ObservationIgnored private var client: (any BrainClientProtocol)?
+    @ObservationIgnored private let client: (any BrainClientProtocol)?
 
     init(client: (any BrainClientProtocol)? = nil) {
-        self.client = client
-    }
-
-    func configure(client: any BrainClientProtocol) {
         self.client = client
     }
 

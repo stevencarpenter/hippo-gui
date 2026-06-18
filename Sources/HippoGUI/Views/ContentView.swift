@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.brainClient) private var brainClient
     @AppStorage("selectedTab") private var selectedTabRawValue = SidebarSection.query.rawValue
 
     private var selection: Binding<SidebarSection?> {
@@ -20,13 +21,13 @@ struct ContentView: View {
         } detail: {
             switch SidebarSection(rawValue: selectedTabRawValue) ?? .query {
             case .query:
-                QueryAskView()
+                QueryAskView(client: brainClient)
             case .knowledge:
-                KnowledgeView()
+                KnowledgeView(client: brainClient)
             case .events:
-                EventBrowserView()
+                EventBrowserView(client: brainClient)
             case .status:
-                StatusView()
+                StatusView(client: brainClient)
             }
         }
         .navigationSplitViewStyle(.balanced)

@@ -44,26 +44,61 @@ protocol BrainClientProtocol: Sendable {
 }
 
 actor BrainClient: BrainClientProtocol {
-    private let baseURL: URL
-    private let session: URLSession
+    private let explicitPort: Int?
+    private let configClient: ConfigClient
+    private let providedSession: URLSession?
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
+    private var cachedBaseURL: URL?
+    private var cachedSession: URLSession?
+
     init(port: Int? = nil, configClient: ConfigClient = ConfigClient(), session: URLSession? = nil) {
-        let resolvedPort = port ?? configClient.loadPort()
-        guard let url = URL(string: "http://localhost:\(resolvedPort)") else {
-            preconditionFailure(
-                "Failed to build base URL for port \(resolvedPort) — should be impossible for a numeric localhost URL")
+        self.explicitPort = port
+        self.configClient = configClient
+        self.providedSession = session
+    }
+
+    /// Resolve the base URL lazily on first use.
+    ///
+    /// Reading the port from the config file happens here rather than in `init`,
+    /// so it runs on the actor's executor (off the main thread). Constructing a
+    /// `BrainClient` — e.g. on the main actor at scene setup — performs no I/O.
+    private func resolveBaseURL() -> URL {
+        if let cachedBaseURL {
+            return cachedBaseURL
         }
-        self.baseURL = url
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = configClient.loadQueryTimeout()
-        self.session = session ?? URLSession(configuration: config)
+        let port = explicitPort ?? configClient.loadPort()
+        guard let url = URL(string: "http://localhost:\(port)") else {
+            preconditionFailure(
+                "Failed to build base URL for port \(port) — should be impossible for a numeric localhost URL")
+        }
+        cachedBaseURL = url
+        return url
+    }
+
+    /// Resolve the URL session lazily on first use, reading the request timeout
+    /// from config off the main thread (see `resolveBaseURL()`).
+    private func resolveSession() -> URLSession {
+        if let cachedSession {
+            return cachedSession
+        }
+        let session: URLSession
+        if let providedSession {
+            session = providedSession
+        } else {
+            let config = URLSessionConfiguration.default
+            config.timeoutIntervalForRequest = configClient.loadQueryTimeout()
+            session = URLSession(configuration: config)
+        }
+        cachedSession = session
+        return session
     }
 
     func listKnowledge(
         limit: Int = 20, offset: Int = 0, nodeType: String? = nil, sinceMs: Int? = nil
     ) async throws(BrainClientError) -> KnowledgeListResponse {
+        let baseURL = resolveBaseURL()
         guard var components = URLComponents(url: baseURL.appending(path: "knowledge"), resolvingAgainstBaseURL: false)
         else {
             throw BrainClientError.invalidURL("\(baseURL.absoluteString)/knowledge")
@@ -88,7 +123,8 @@ actor BrainClient: BrainClientProtocol {
     }
 
     func getKnowledge(id: Int) async throws(BrainClientError) -> KnowledgeNode {
-        try await get(baseURL.appending(path: "knowledge/\(id)"), as: KnowledgeNode.self)
+        let baseURL = resolveBaseURL()
+        return try await get(baseURL.appending(path: "knowledge/\(id)"), as: KnowledgeNode.self)
     }
 
     func listEvents(
@@ -98,6 +134,7 @@ actor BrainClient: BrainClientProtocol {
         sinceMs: Int? = nil,
         project: String? = nil
     ) async throws(BrainClientError) -> EventListResponse {
+        let baseURL = resolveBaseURL()
         guard var components = URLComponents(url: baseURL.appending(path: "events"), resolvingAgainstBaseURL: false)
         else {
             throw BrainClientError.invalidURL("\(baseURL.absoluteString)/events")
@@ -127,6 +164,7 @@ actor BrainClient: BrainClientProtocol {
     func listSessions(
         limit: Int = 20, offset: Int = 0, sinceMs: Int? = nil
     ) async throws(BrainClientError) -> SessionListResponse {
+        let baseURL = resolveBaseURL()
         var queryItems = [
             URLQueryItem(name: "limit", value: String(limit)),
             URLQueryItem(name: "offset", value: String(offset)),
@@ -167,7 +205,8 @@ actor BrainClient: BrainClientProtocol {
     }
 
     func health() async throws(BrainClientError) -> HealthResponse {
-        try await get(baseURL.appending(path: "health"), as: HealthResponse.self)
+        let baseURL = resolveBaseURL()
+        return try await get(baseURL.appending(path: "health"), as: HealthResponse.self)
     }
 
     private func get<T: Decodable>(_ url: URL, as type: T.Type) async throws(BrainClientError) -> T {
@@ -178,6 +217,7 @@ actor BrainClient: BrainClientProtocol {
     private func post<Body: Encodable, T: Decodable>(
         path: String, body: Body, as type: T.Type
     ) async throws(BrainClientError) -> T {
+        let baseURL = resolveBaseURL()
         let url = baseURL.appending(path: path)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -193,6 +233,7 @@ actor BrainClient: BrainClientProtocol {
     }
 
     private func execute<T: Decodable>(_ request: URLRequest, as type: T.Type) async throws(BrainClientError) -> T {
+        let session = resolveSession()
         do {
             let (data, response) = try await session.data(for: request)
             try validateResponse(response, data: data)

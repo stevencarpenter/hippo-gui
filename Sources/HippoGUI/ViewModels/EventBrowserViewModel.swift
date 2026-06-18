@@ -21,13 +21,9 @@ final class EventBrowserViewModel {
     var eventOffset = 0
     var eventTotal = 0
 
-    @ObservationIgnored private var client: (any BrainClientProtocol)?
+    @ObservationIgnored private let client: (any BrainClientProtocol)?
 
     init(client: (any BrainClientProtocol)? = nil) {
-        self.client = client
-    }
-
-    func configure(client: any BrainClientProtocol) {
         self.client = client
     }
 
