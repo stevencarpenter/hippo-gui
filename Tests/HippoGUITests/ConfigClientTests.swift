@@ -96,6 +96,37 @@ struct ConfigClientTests {
     }
 
     @Test
+    func snapshotResolvesAllValuesFromOneParse() throws {
+        let path = try writeConfig(
+            """
+            [brain]
+            port = 9001
+            query_timeout_secs = 45
+
+            [storage]
+            data_dir = "/tmp/hippo-data"
+            """
+        )
+        let snapshot = ConfigClient(configPath: path).snapshot()
+        #expect(snapshot.port == 9001)
+        #expect(snapshot.queryTimeout == 45)
+        #expect(snapshot.dataDirectory == URL(fileURLWithPath: "/tmp/hippo-data", isDirectory: true))
+    }
+
+    @Test
+    func snapshotUsesDefaultsForMissingValues() throws {
+        let path = try writeConfig(
+            """
+            [brain]
+            port = 9001
+            """
+        )
+        let snapshot = ConfigClient(configPath: path).snapshot()
+        #expect(snapshot.port == 9001)
+        #expect(snapshot.queryTimeout == ConfigClient.defaultQueryTimeout)
+    }
+
+    @Test
     func queryTimeoutAcceptsFloatValue() throws {
         let path = try writeConfig(
             """

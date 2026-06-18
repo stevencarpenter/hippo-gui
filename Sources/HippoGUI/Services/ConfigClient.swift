@@ -1,6 +1,15 @@
 import Foundation
 import TOMLDecoder
 
+/// An immutable, internally-consistent view of Hippo's config, resolved from a
+/// single read of the file. Derive all values a consumer needs from one
+/// `ConfigClient.snapshot()` so they can't be torn across separate reads.
+struct ConfigSnapshot: Sendable {
+    let port: Int
+    let queryTimeout: TimeInterval
+    let dataDirectory: URL
+}
+
 /// Reads a handful of scalar values from Hippo's `~/.config/hippo/config.toml`.
 ///
 /// Parsing is delegated to TOMLDecoder (a pure-Swift, Codable-based TOML
@@ -23,21 +32,42 @@ struct ConfigClient: Sendable {
         }
     }
 
+    /// Read and parse the config file exactly once and resolve every value from
+    /// that single parse.
+    ///
+    /// This is the consistency backstop: a consumer that needs more than one
+    /// setting (e.g. `BrainClient` needs both port and timeout) must take one
+    /// snapshot rather than calling several `loadX()` accessors, otherwise an
+    /// edit to the file between reads could yield a torn mix of old and new
+    /// values.
+    func snapshot() -> ConfigSnapshot {
+        let parsed = decoded()
+        return ConfigSnapshot(
+            port: parsed?.brain?.port ?? Self.defaultPort,
+            queryTimeout: parsed?.brain?.queryTimeoutSecs ?? Self.defaultQueryTimeout,
+            dataDirectory: Self.resolveDataDirectory(parsed?.storage?.dataDir)
+        )
+    }
+
     func loadPort() -> Int {
-        decoded()?.brain?.port ?? Self.defaultPort
+        snapshot().port
     }
 
     func loadQueryTimeout() -> TimeInterval {
-        decoded()?.brain?.queryTimeoutSecs ?? Self.defaultQueryTimeout
+        snapshot().queryTimeout
     }
 
     func loadDataDirectory() -> URL {
+        snapshot().dataDirectory
+    }
+
+    private static func resolveDataDirectory(_ configuredValue: String?) -> URL {
         let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
-        let configuredPath = decoded()?.storage?.dataDir?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
         let fallback = homeDirectory.appendingPathComponent(Self.defaultDataDirectory)
 
-        guard let configuredPath, !configuredPath.isEmpty else {
+        guard let configuredPath = configuredValue?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !configuredPath.isEmpty
+        else {
             return fallback
         }
 

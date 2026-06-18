@@ -50,8 +50,7 @@ actor BrainClient: BrainClientProtocol {
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
-    private var cachedBaseURL: URL?
-    private var cachedSession: URLSession?
+    private var cachedEndpoint: (baseURL: URL, session: URLSession)?
 
     init(port: Int? = nil, configClient: ConfigClient = ConfigClient(), session: URLSession? = nil) {
         self.explicitPort = port
@@ -59,46 +58,45 @@ actor BrainClient: BrainClientProtocol {
         self.providedSession = session
     }
 
-    /// Resolve the base URL lazily on first use.
+    /// Resolve the base URL and URL session lazily on first use, from a single
+    /// config snapshot, and cache the pair for the client's lifetime.
     ///
-    /// Reading the port from the config file happens here rather than in `init`,
-    /// so it runs on the actor's executor (off the main thread). Constructing a
-    /// `BrainClient` — e.g. on the main actor at scene setup — performs no I/O.
-    private func resolveBaseURL() -> URL {
-        if let cachedBaseURL {
-            return cachedBaseURL
+    /// Reading the config happens here rather than in `init`, so it runs on the
+    /// actor's executor (off the main thread) — constructing a `BrainClient`,
+    /// e.g. on the main actor at scene setup, performs no I/O. Taking one
+    /// `snapshot()` (rather than separate `loadPort()`/`loadQueryTimeout()`
+    /// reads) guarantees the port and timeout come from the same parse, so a
+    /// concurrent edit to the file can't produce a torn configuration.
+    private func endpoint() -> (baseURL: URL, session: URLSession) {
+        if let cachedEndpoint {
+            return cachedEndpoint
         }
-        let port = explicitPort ?? configClient.loadPort()
+
+        let snapshot = configClient.snapshot()
+        let port = explicitPort ?? snapshot.port
         guard let url = URL(string: "http://localhost:\(port)") else {
             preconditionFailure(
                 "Failed to build base URL for port \(port) — should be impossible for a numeric localhost URL")
         }
-        cachedBaseURL = url
-        return url
-    }
 
-    /// Resolve the URL session lazily on first use, reading the request timeout
-    /// from config off the main thread (see `resolveBaseURL()`).
-    private func resolveSession() -> URLSession {
-        if let cachedSession {
-            return cachedSession
-        }
         let session: URLSession
         if let providedSession {
             session = providedSession
         } else {
             let config = URLSessionConfiguration.default
-            config.timeoutIntervalForRequest = configClient.loadQueryTimeout()
+            config.timeoutIntervalForRequest = snapshot.queryTimeout
             session = URLSession(configuration: config)
         }
-        cachedSession = session
-        return session
+
+        let resolved = (baseURL: url, session: session)
+        cachedEndpoint = resolved
+        return resolved
     }
 
     func listKnowledge(
         limit: Int = 20, offset: Int = 0, nodeType: String? = nil, sinceMs: Int? = nil
     ) async throws(BrainClientError) -> KnowledgeListResponse {
-        let baseURL = resolveBaseURL()
+        let baseURL = endpoint().baseURL
         guard var components = URLComponents(url: baseURL.appending(path: "knowledge"), resolvingAgainstBaseURL: false)
         else {
             throw BrainClientError.invalidURL("\(baseURL.absoluteString)/knowledge")
@@ -123,7 +121,7 @@ actor BrainClient: BrainClientProtocol {
     }
 
     func getKnowledge(id: Int) async throws(BrainClientError) -> KnowledgeNode {
-        let baseURL = resolveBaseURL()
+        let baseURL = endpoint().baseURL
         return try await get(baseURL.appending(path: "knowledge/\(id)"), as: KnowledgeNode.self)
     }
 
@@ -134,7 +132,7 @@ actor BrainClient: BrainClientProtocol {
         sinceMs: Int? = nil,
         project: String? = nil
     ) async throws(BrainClientError) -> EventListResponse {
-        let baseURL = resolveBaseURL()
+        let baseURL = endpoint().baseURL
         guard var components = URLComponents(url: baseURL.appending(path: "events"), resolvingAgainstBaseURL: false)
         else {
             throw BrainClientError.invalidURL("\(baseURL.absoluteString)/events")
@@ -164,7 +162,7 @@ actor BrainClient: BrainClientProtocol {
     func listSessions(
         limit: Int = 20, offset: Int = 0, sinceMs: Int? = nil
     ) async throws(BrainClientError) -> SessionListResponse {
-        let baseURL = resolveBaseURL()
+        let baseURL = endpoint().baseURL
         var queryItems = [
             URLQueryItem(name: "limit", value: String(limit)),
             URLQueryItem(name: "offset", value: String(offset)),
@@ -205,7 +203,7 @@ actor BrainClient: BrainClientProtocol {
     }
 
     func health() async throws(BrainClientError) -> HealthResponse {
-        let baseURL = resolveBaseURL()
+        let baseURL = endpoint().baseURL
         return try await get(baseURL.appending(path: "health"), as: HealthResponse.self)
     }
 
@@ -217,7 +215,7 @@ actor BrainClient: BrainClientProtocol {
     private func post<Body: Encodable, T: Decodable>(
         path: String, body: Body, as type: T.Type
     ) async throws(BrainClientError) -> T {
-        let baseURL = resolveBaseURL()
+        let baseURL = endpoint().baseURL
         let url = baseURL.appending(path: path)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -233,7 +231,7 @@ actor BrainClient: BrainClientProtocol {
     }
 
     private func execute<T: Decodable>(_ request: URLRequest, as type: T.Type) async throws(BrainClientError) -> T {
-        let session = resolveSession()
+        let session = endpoint().session
         do {
             let (data, response) = try await session.data(for: request)
             try validateResponse(response, data: data)
