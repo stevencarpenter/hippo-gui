@@ -80,7 +80,7 @@ if [ -d "${ASSET_CATALOG_DIR}" ] && command -v xcrun >/dev/null 2>&1; then
     --enable-on-demand-resources NO \
     --development-region en \
     --target-device mac \
-    --minimum-deployment-target 26.0 \
+    --minimum-deployment-target 27.0 \
     --platform macosx \
     --bundle-identifier "${bundle_identifier}" \
     --output-partial-info-plist "${tmp_plist}" >/dev/null

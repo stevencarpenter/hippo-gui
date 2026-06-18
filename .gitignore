@@ -1,0 +1,20 @@
+# macOS Finder metadata
+.DS_Store
+
+# Swift Package Manager build products and plugin artifacts
+.build/
+
+# Xcode local state. Keep shared schemes/workspace files tracked.
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+
+# Local Xcode build products
+DerivedData/
+
+# Script-generated app bundles, archives, checksums, and release notes
+dist/
+
+# Local logs
+*.log

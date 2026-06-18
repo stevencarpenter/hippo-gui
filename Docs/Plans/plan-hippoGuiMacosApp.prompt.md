@@ -1,23 +1,23 @@
 ## Plan: Build Out HippoGUI macOS SwiftUI App (Implemented)
 
-**Target platform:** macOS 26+ · **Swift:** 6.x · **SwiftUI:** latest (WWDC 2025 design system)
+**Target platform:** macOS 27 beta+ · **Swift:** 6.x · **SwiftUI:** latest
 
 A phased plan to evolve HippoGUI from a basic functional prototype into a spec-compliant, read-only macOS app using the latest language and framework features. Phases cover: foundation (Swift 6 concurrency + MVVM + data model fixes), core UX (navigation, pagination, search, filters), feature enrichment (status, related entities/events, auto-refresh), and testing.
 
-**Status:** Implemented in the current Swift package-based app as of April 2026.
+**Status:** Implemented in the current Swift package-based app as of April 2026 and upgraded for the macOS 27 beta SDK in June 2026.
 
 **Implementation notes:**
 
-- `Package.swift` currently uses `// swift-tools-version: 6.3`, `.macOS(.v26)`, and `swiftLanguageModes: [.v6]`.
+- `Package.swift` currently uses `// swift-tools-version: 6.4`, `.macOS(.v27)`, and `swiftLanguageModes: [.v6]`.
 - Dependency injection is implemented with a custom SwiftUI environment key via `.brainClient(...)` and `@Environment(\.brainClient)` rather than `.environment(brainClient)` / `@Environment(BrainClient.self)`.
 - ViewModels are `@Observable @MainActor`. Previews use `PreviewBrainClient` (in `Sources/HippoGUI/Services/`); tests in `Tests/HippoGUITests/` use a separate `MockBrainClient` helper, all under Swift Testing.
 
 ---
 
 ### Phase 0 — Toolchain Upgrade
-*Goal: Set the project up for Swift 6 strict concurrency and macOS 26 before any other changes.*
+*Goal: Set the project up for Swift 6 strict concurrency and the current beta macOS target before any other changes.*
 
-- [x] **0.1 Bump `Package.swift` to Swift 6 tooling** — The package now uses `// swift-tools-version: 6.3`, targets `.macOS(.v26)`, and opts into Swift 6 via `swiftLanguageModes: [.v6]`.
+- [x] **0.1 Bump `Package.swift` to Swift 6 tooling** — The package now uses `// swift-tools-version: 6.4`, targets `.macOS(.v27)`, and opts into Swift 6 via `swiftLanguageModes: [.v6]`.
 
 - [x] **0.2 Make all models `Sendable`** — `KnowledgeNode`, `Event`, `Session`, `AskResponse`, `AskSource`, and new response/detail types were updated for Swift 6 concurrency.
 
@@ -44,8 +44,8 @@ A phased plan to evolve HippoGUI from a basic functional prototype into a spec-c
 
 ---
 
-### Phase 2 — Core UX: Navigation + Pagination + Search + Filters + macOS 26 Design
-*Goal: Make lists usable, add spec-required filters, and adopt the macOS 26 Liquid Glass design language.*
+### Phase 2 — Core UX: Navigation + Pagination + Search + Filters + Liquid Glass Design
+*Goal: Make lists usable, add spec-required filters, and adopt the current macOS Liquid Glass design language.*
 
 - [x] **2.1 Replace `TabView` with `NavigationSplitView`** — `ContentView` now uses `NavigationSplitView` with a balanced sidebar/detail layout.
 
@@ -117,8 +117,8 @@ These items are **explicitly excluded from the MVP** per the design spec:
 
 ### Further Considerations
 
-1. **`@Observable` vs `ObservableObject`** — `@Observable` (macOS 14 / Swift 5.9) is the modern approach and the only correct choice for Swift 6 + macOS 26. Do not fall back to `ObservableObject`/`@Published` — they are legacy and will generate Swift 6 concurrency warnings.
+1. **`@Observable` vs `ObservableObject`** — `@Observable` (macOS 14 / Swift 5.9) is the modern approach and the only correct choice for Swift 6 + the current beta macOS target. Do not fall back to `ObservableObject`/`@Published` — they are legacy and will generate Swift 6 concurrency warnings.
 2. **`since_ms` filter UI** — The spec requires the query param but doesn't prescribe UI. A preset segmented control ("Last 24 h / 7 days / All") is simpler than a `DatePicker` for MVP.
 3. **Queue depth in StatusView** — The brain `/health` endpoint was extended so the GUI can surface queue summary in `StatusView`.
-4. **Liquid Glass** — macOS 26 introduces the new Liquid Glass design language (WWDC 2025). System containers (`NavigationSplitView`, toolbars, sheets) automatically adopt it. Avoid `Color.primary` overlays or custom backgrounds on sidebar/toolbar areas — let the system render the glass material.
+4. **Liquid Glass** — macOS 26 introduced the Liquid Glass design language. System containers (`NavigationSplitView`, toolbars, sheets) automatically adopt it. Avoid `Color.primary` overlays or custom backgrounds on sidebar/toolbar areas — let the system render the glass material.
 5. **Swift 6 concurrency in practice** — `BrainClient` is already an `actor`, which is ideal. ViewModels are `@MainActor`. The only compile-time risk is any `@escaping` closure that captures ViewModel state — annotate such closures with `@MainActor` or use `Task { @MainActor in … }` to silence warnings.
